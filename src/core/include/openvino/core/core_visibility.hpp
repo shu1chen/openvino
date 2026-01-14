@@ -62,7 +62,7 @@ namespace ov {}  // namespace ov
 #endif      // OPENVINO_STATIC_LIBRARY
 
 // OPENVINO_API_EXTERN is used for extern templates declaration. No attribute is required for Windows.
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && !defined(__INTEL_LLVM_COMPILER)
 #    define OPENVINO_API_EXTERN
 #else
 #    define OPENVINO_API_EXTERN OPENVINO_API

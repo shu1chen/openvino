@@ -8,7 +8,7 @@ set(TARGET_NAME openvino)
 # Add openvino library
 #
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /ignore:4098")
     set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /ignore:4098")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /ignore:4098")
@@ -89,8 +89,8 @@ endif()
 # must be called after all target_link_libraries
 ov_add_api_validator_post_build_step(TARGET ${TARGET_NAME} EXTRA ${TBB_IMPORTED_TARGETS})
 
-# LTO
-set_target_properties(${TARGET_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE ${ENABLE_LTO})
+# LTO (only via CMake IPO property when supported)
+set_target_properties(${TARGET_NAME} PROPERTIES INTERPROCEDURAL_OPTIMIZATION_RELEASE ${OV_IPO_SUPPORTED})
 
 ov_register_plugins(MAIN_TARGET ${TARGET_NAME})
 

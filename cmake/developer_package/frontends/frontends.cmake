@@ -282,9 +282,9 @@ macro(ov_add_frontend)
     ov_add_clang_format_target(${TARGET_NAME}_clang FOR_TARGETS ${TARGET_NAME}
                                EXCLUDE_PATTERNS ${PROTO_SRCS} ${PROTO_HDRS} ${proto_files} ${flatbuffers_schema_files})
 
-    # enable LTO
+    # enable LTO (only via CMake IPO property when supported)
     set_target_properties(${TARGET_NAME} PROPERTIES
-                          INTERPROCEDURAL_OPTIMIZATION_RELEASE ${ENABLE_LTO})
+                          INTERPROCEDURAL_OPTIMIZATION_RELEASE ${OV_IPO_SUPPORTED})
 
     if(OV_FRONTEND_SKIP_NCC_STYLE)
         # frontend's CMakeLists.txt must define its own custom 'ov_ncc_naming_style' step

@@ -12,7 +12,32 @@ else()
     set (CPACK_GENERATOR "TGZ" CACHE STRING "Cpack generator for OpenVINO")
 endif()
 
-ov_dependent_option (ENABLE_LTO "Enable Link Time Optimization" OFF "LINUX;NOT ARM;CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 9.0" OFF)
+ov_option (ENABLE_LTO "Enable Link Time Optimization" OFF)
+
+ov_option_enum(ENABLE_PGO "Profile-Guided Optimization mode: OFF | GENERATE | USE" OFF
+               ALLOWED_VALUES OFF GENERATE USE)
+
+set(PGO_PROFILES_DIR "${CMAKE_BINARY_DIR}/pgo_profiles" CACHE PATH
+    "Directory for PGO profile data (instrumented PGO)")
+
+if(OV_COMPILER_IS_INTEL_LLVM)
+    set(_hwpgo_default_allowed ON)
+else()
+    set(_hwpgo_default_allowed OFF)
+endif()
+
+if(_hwpgo_default_allowed)
+    ov_option_enum(ENABLE_HWPGO "Hardware PGO mode: OFF | GENERATE | USE (ICX only)" OFF
+                   ALLOWED_VALUES OFF GENERATE USE)
+else()
+    set(ENABLE_HWPGO "OFF" CACHE STRING "Hardware PGO mode: OFF | GENERATE | USE (ICX only)")
+endif()
+
+set(HWPGO_PROFILE_FILE "" CACHE FILEPATH
+    "Path to hardware PGO sample profile file for -fprofile-sample-use (HWPGO USE phase)")
+
+set(OV_TARGET_ARCH "OFF" CACHE STRING
+    "Target microarchitecture for global optimization (e.g., PANTHERLAKE, SAPPHIRERAPIDS, OFF)")
 
 ov_option (OS_FOLDER "create OS dedicated folder in output" OFF)
 
@@ -30,9 +55,9 @@ endif()
 
 ov_option (CMAKE_COMPILE_WARNING_AS_ERROR "Enable warnings as errors" ${CMAKE_COMPILE_WARNING_AS_ERROR_DEFAULT})
 
-ov_dependent_option (ENABLE_QSPECTRE "Enable Qspectre mitigation" OFF "CMAKE_CXX_COMPILER_ID STREQUAL MSVC" OFF)
+ov_dependent_option (ENABLE_QSPECTRE "Enable Qspectre mitigation" OFF "CMAKE_CXX_COMPILER_ID STREQUAL MSVC OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32)" OFF)
 
-ov_dependent_option (ENABLE_INTEGRITYCHECK "build DLLs with /INTEGRITYCHECK flag" OFF "CMAKE_CXX_COMPILER_ID STREQUAL MSVC" OFF)
+ov_dependent_option (ENABLE_INTEGRITYCHECK "build DLLs with /INTEGRITYCHECK flag" OFF "CMAKE_CXX_COMPILER_ID STREQUAL MSVC OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32)" OFF)
 
 ov_option (ENABLE_SANITIZER "enable checking memory errors via AddressSanitizer" OFF)
 

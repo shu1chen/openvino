@@ -240,20 +240,13 @@ set(CMAKE_WARN_DEPRECATED OFF CACHE BOOL "Don't warn about obsolete cmake versio
 set(CMAKE_WARN_ON_ABSOLUTE_INSTALL_DESTINATION ON CACHE BOOL "Warn about absolute paths in destination")
 
 # LTO
+include(compile_flags/lto)
 
-if(ENABLE_LTO)
-    set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
-    include(CheckIPOSupported)
+# Architecture-specific optimization
+include(compile_flags/arch_opt)
 
-    check_ipo_supported(RESULT IPO_SUPPORTED
-                        OUTPUT OUTPUT_MESSAGE
-                        LANGUAGES C CXX)
-
-    if(NOT IPO_SUPPORTED)
-        set(ENABLE_LTO "OFF" CACHE STRING "Enable Link Time Optimization" FORCE)
-        message(WARNING "IPO / LTO is not supported: ${OUTPUT_MESSAGE}")
-    endif()
-endif()
+# PGO / HWPGO
+include(compile_flags/pgo)
 
 # General flags
 

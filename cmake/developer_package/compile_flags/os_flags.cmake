@@ -53,7 +53,7 @@ endif()
 
 file(RELATIVE_PATH OV_NATIVE_PARENT_PROJECT_ROOT_DIR "${CMAKE_SOURCE_DIR}/.." ${CMAKE_SOURCE_DIR})
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
     #
     # Common options / warnings enabled
     #
@@ -67,13 +67,14 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     ov_add_compiler_flags(/W3)
 
     # Increase Number of Sections in .Obj file
-    ov_add_compiler_flags(/bigobj)
+    # Use generator expressions to avoid passing these flags to RC (resource compiler)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/bigobj>)
     # Build with multiple processes
-    ov_add_compiler_flags(/MP)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/MP>)
 
     # Specifies both the source character set and the execution character set as UTF-8.
     # For details, refer to link: https://learn.microsoft.com/en-us/cpp/build/reference/utf-8-set-source-and-executable-character-sets-to-utf-8?view=msvc-170
-    ov_add_compiler_flags(/utf-8)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/utf-8>)
 
     # Workaround for an MSVC compiler issue in some versions of Visual Studio 2022.
     # The issue involves a null dereference to a mutex. For details, refer to link https://github.com/microsoft/STL/wiki/Changelog#vs-2022-1710
@@ -107,13 +108,15 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     #
 
     # C4251 needs to have dll-interface to be used by clients of class
-    ov_add_compiler_flags(/wd4251)
     # C4275 non dll-interface class used as base for dll-interface class
-    ov_add_compiler_flags(/wd4275)
+    # Use generator expressions to avoid passing these to RC (resource compiler)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/wd4251>)
+    add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/wd4275>)
 
     # Enable __FILE__ trim, use path with forward and backward slash as directory separator
     # github actions use sccache which doesn't support /d1trimfile compile option
-    if(NOT DEFINED ENV{GITHUB_ACTIONS})
+    # Note: Intel LLVM (icx) doesn't support /d1trimfile, it uses -ffile-prefix-map (handled below)
+    if(NOT DEFINED ENV{GITHUB_ACTIONS} AND CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
         add_compile_options(
             "$<$<COMPILE_LANGUAGE:CXX>:/d1trimfile:${OV_NATIVE_PROJECT_ROOT_DIR}\\>"
             "$<$<COMPILE_LANGUAGE:CXX>:/d1trimfile:${CMAKE_SOURCE_DIR}/>")

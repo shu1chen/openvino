@@ -4,7 +4,7 @@
 
 macro(enable_fuzzing)
     # Enable (libFuzzer)[https://llvm.org/docs/LibFuzzer.html] if supported.
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
         # see https://learn.microsoft.com/en-us/cpp/build/reference/fsanitize?view=msvc-160#remarks
         set(FUZZING_COMPILER_FLAGS "/fsanitize=fuzzer")
     elseif(OV_COMPILER_IS_CLANG)
@@ -25,7 +25,7 @@ function(add_fuzzer FUZZER_EXE_NAME FUZZER_SOURCES)
     add_executable(${FUZZER_EXE_NAME} ${FUZZER_SOURCES})
     target_link_libraries(${FUZZER_EXE_NAME} PRIVATE fuzz-testhelper)
     if(ENABLE_FUZZING)
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
             # no extra flags are required
         elseif(OV_COMPILER_IS_CLANG)
             set_target_properties(${FUZZER_EXE_NAME} PROPERTIES LINK_FLAGS "-fsanitize=fuzzer")

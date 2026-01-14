@@ -27,7 +27,7 @@ endif()
 
 # temporarily remove CMAKE_COMPILE_WARNING_AS_ERROR for thirdparty
 if(CMAKE_COMPILE_WARNING_AS_ERROR AND WIN32)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_VERSION VERSION_LESS 3.24)
+    if((CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR OV_COMPILER_IS_INTEL_LLVM) AND CMAKE_VERSION VERSION_LESS 3.24)
         ov_add_compiler_flags(/WX-)
     endif()
     set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
@@ -491,7 +491,7 @@ if(ENABLE_SNAPPY_COMPRESSION)
             set(SNAPPY_BUILD_BENCHMARKS OFF)
             set(SNAPPY_BUILD_TESTS OFF)
             set(INSTALL_GTEST OFF)
-            if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+            if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
                 # '<': signed/unsigned mismatch
                 ov_add_compiler_flags(/wd4018)
                 # conditional expression is constant

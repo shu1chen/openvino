@@ -13,7 +13,7 @@ ov_target_link_whole_archive("FunctionalTests" "CommonLib" "AnotherLib")
 
 function(ov_target_link_whole_archive targetName)
     foreach(staticLib IN LISTS ARGN)
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
             # CMake does not support generator expression in LINK_FLAGS, so we workaround it a little bit:
             # passing same static library as normal link (to get build deps working, and includes too), than using WHOLEARCHIVE option
             # it's important here to not use slash '/' for option !

@@ -5,7 +5,7 @@
 include(CheckCXXCompilerFlag)
 
 if (ENABLE_SANITIZER)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
         # the flag is available since MSVC 2019 16.9
         # see https://learn.microsoft.com/en-us/cpp/build/reference/fsanitize?view=msvc-160
         check_cxx_compiler_flag("/fsanitize=address" SANITIZE_ADDRESS_SUPPORTED)
@@ -45,7 +45,7 @@ if (ENABLE_SANITIZER)
 endif()
 
 if(ENABLE_UB_SANITIZER)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
         message(FATAL_ERROR "UndefinedBehavior sanitizer is not supported in Windows with MSVC compiler. Please, use clang-cl or mingw")
     endif()
 
@@ -85,7 +85,7 @@ if(ENABLE_UB_SANITIZER)
 endif()
 
 if(ENABLE_THREAD_SANITIZER)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
         message(FATAL_ERROR "Thread sanitizer is not supported in Windows with MSVC compiler. Please, use clang-cl or mingw")
     elseif(CMAKE_COMPILER_IS_GNUCXX OR OV_COMPILER_IS_CLANG)
         set(SANITIZER_COMPILER_FLAGS "${SANITIZER_COMPILER_FLAGS} -fsanitize=thread")
@@ -102,7 +102,7 @@ endif()
 # common sanitizer options
 if(DEFINED SANITIZER_COMPILER_FLAGS)
     # ensure symbols are present
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR (OV_COMPILER_IS_INTEL_LLVM AND WIN32))
         set(SANITIZER_COMPILER_FLAGS "${SANITIZER_COMPILER_FLAGS} /Oy-")
     elseif(CMAKE_COMPILER_IS_GNUCXX OR OV_COMPILER_IS_CLANG)
         set(SANITIZER_COMPILER_FLAGS "${SANITIZER_COMPILER_FLAGS} -g -fno-omit-frame-pointer")
