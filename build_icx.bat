@@ -75,16 +75,18 @@ cmake -B build_release_2025.4_icx -G "Ninja" ^
     -DENABLE_WHEEL=ON
 
 cmake --build build_release_2025.4_icx --config Release --verbose -j
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_icx --prefix "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\icx\build_samples_icx" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\icx\build_samples_icx"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\icx\build_samples_icx"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Ninja" -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icx -DCMAKE_BUILD_TYPE=Release
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -117,16 +119,18 @@ cmake -B build_release_2025.4_icx_ptl -G "Ninja" ^
     -DOV_TARGET_ARCH=%ARCH%
 
 cmake --build build_release_2025.4_icx_ptl --config Release --verbose -j
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_icx_ptl --prefix "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Ninja" -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icx -DCMAKE_BUILD_TYPE=Release
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -160,16 +164,18 @@ cmake -B build_release_2025.4_icx_ptl_lto -G "Ninja" ^
     -DENABLE_LTO=ON
 
 cmake --build build_release_2025.4_icx_ptl_lto --config Release --verbose -j
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_icx_ptl_lto --prefix "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Ninja" -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icx -DCMAKE_BUILD_TYPE=Release
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -205,16 +211,18 @@ cmake -B build_release_2025.4_icx_ptl_lto_hwpgo_gen -G "Ninja" ^
     -DENABLE_HWPGO=GENERATE
 
 cmake --build build_release_2025.4_icx_ptl_lto_hwpgo_gen --config Release --verbose -j
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_icx_ptl_lto_hwpgo_gen --prefix "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo_gen"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo_gen\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo_gen\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo_gen" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo_gen"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo_gen\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo_gen"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Ninja" -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icx -DCMAKE_BUILD_TYPE=Release
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -276,16 +284,18 @@ cmake -B build_release_2025.4_icx_ptl_lto_hwpgo -G "Ninja" ^
     -DHWPGO_PROFILE_FILE="%PROFILE_FILE%"
 
 cmake --build build_release_2025.4_icx_ptl_lto_hwpgo --config Release --verbose -j
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_icx_ptl_lto_hwpgo --prefix "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpgo\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Ninja" -DCMAKE_C_COMPILER=icx -DCMAKE_CXX_COMPILER=icx -DCMAKE_BUILD_TYPE=Release
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================

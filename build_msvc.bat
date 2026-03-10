@@ -20,8 +20,24 @@ REM    pgo-use       :  MSVC Release + /arch:AVX2 + /GL + /USEPROFILE
 REM
 REM  PGO workflow:
 REM    1. build_msvc.bat pgo-generate   (build instrumented binaries)
-REM    2. Run representative workloads (.pgc files generated automatically)
-REM    3. build_msvc.bat pgo-use        (rebuild with collected profile)
+REM    2. Run representative workloads with the INSTALLED binaries
+REM    3. build_msvc.bat pgo-use        (reconfigure same build dir with /USEPROFILE)
+REM
+REM  How MSVC PGO profile data works:
+REM    - OpenVINO cmake sets CMAKE_RUNTIME_OUTPUT_DIRECTORY to
+REM      <source_dir>\bin\intel64\<config>, so ALL binaries (DLLs, EXEs)
+REM      go to openvino\bin\intel64\Release\ (not inside the build tree).
+REM    - The GENERATE link creates a .pgd file next to each binary
+REM      (e.g. openvino\bin\intel64\Release\openvino.pgd)
+REM    - The absolute .pgd path is BAKED INTO the instrumented binary
+REM    - At runtime, the PGO runtime writes .pgc files next to the .pgd,
+REM      regardless of where the binary is executed from
+REM    - The USE link finds <target>.pgd + <target>!N.pgc in the output dir
+REM
+REM  Optional: set VCPROFILE_PATH=<dir> before running workloads to redirect
+REM            .pgc output to a different directory.
+REM
+REM  IMPORTANT: Do NOT delete the build directory or bin\intel64\ between phases.
 REM ============================================================
 
 setlocal enabledelayedexpansion
@@ -31,7 +47,6 @@ if "%MODE%"=="" set MODE=base
 
 REM --- Common configuration ---
 set ARCH=PANTHERLAKE
-set PGO_DIR=C:\Users\gta\Desktop\openvino\msvc\pgo_profiles
 
 REM --- Setup TBB environment ---
 call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
@@ -65,17 +80,19 @@ cmake -B build_release_2025.4_msvc -G "Visual Studio 17 2022" -A x64 ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON
 
-cmake --build build_release_2025.4_msvc --config Release --verbose -j
+cmake --build build_release_2025.4_msvc --config Release --verbose -j -- /p:StopOnFirstFailure=true
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_msvc --config Release --prefix "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Visual Studio 17 2022" -A x64
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -104,17 +121,19 @@ cmake -B build_release_2025.4_msvc_ptl -G "Visual Studio 17 2022" -A x64 ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH%
 
-cmake --build build_release_2025.4_msvc_ptl --config Release --verbose -j
+cmake --build build_release_2025.4_msvc_ptl --config Release --verbose -j -- /p:StopOnFirstFailure=true
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_msvc_ptl --config Release --prefix "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Visual Studio 17 2022" -A x64
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -144,17 +163,19 @@ cmake -B build_release_2025.4_msvc_ptl_lto -G "Visual Studio 17 2022" -A x64 ^
     -DOV_TARGET_ARCH=%ARCH% ^
     -DENABLE_LTO=ON
 
-cmake --build build_release_2025.4_msvc_ptl_lto --config Release --verbose -j
+cmake --build build_release_2025.4_msvc_ptl_lto --config Release --verbose -j -- /p:StopOnFirstFailure=true
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_msvc_ptl_lto --config Release --prefix "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Visual Studio 17 2022" -A x64
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================
@@ -166,78 +187,22 @@ goto :done
 
 REM ============================================================
 REM  Mode 4: MSVC + Architecture Opt + LTO + PGO Generate
+REM
+REM  IMPORTANT: pgo-generate and pgo-use share the same build
+REM  directory (build_release_2025.4_msvc_ptl_lto_pgo). Each
+REM  target creates its own .pgd file next to its binary. The
+REM  .pgc files from profiling runs land beside them. The USE
+REM  phase reconfigures the SAME directory so MSVC can find the
+REM  per-target .pgd/.pgc files.
 REM ============================================================
 :mode_pgo_generate
 echo.
 echo ============================================================
 echo  Building: MSVC + %ARCH% + LTO + PGO GENERATE
-echo  Adds /GL (compile) + /GENPROFILE (link)
+echo  Adds /GL (compile) + /LTCG /GENPROFILE (link)
+echo  Per-target .pgd files created next to each binary
 echo ============================================================
 echo.
-
-if not exist "%PGO_DIR%" mkdir "%PGO_DIR%"
-
-rmdir /s /q build_release_2025.4_msvc_ptl_lto_pgo_gen 2>nul
-
-cmake -B build_release_2025.4_msvc_ptl_lto_pgo_gen -G "Visual Studio 17 2022" -A x64 ^
-    -DENABLE_INTEL_GPU=OFF ^
-    -DENABLE_INTEL_NPU=OFF ^
-    -DENABLE_PYTHON=ON ^
-    -DENABLE_WHEEL=ON ^
-    -DOV_TARGET_ARCH=%ARCH% ^
-    -DENABLE_LTO=ON ^
-    -DENABLE_PGO=GENERATE ^
-    -DPGO_PROFILES_DIR="%PGO_DIR%"
-
-cmake --build build_release_2025.4_msvc_ptl_lto_pgo_gen --config Release --verbose -j
-
-cmake --install build_release_2025.4_msvc_ptl_lto_pgo_gen --config Release --prefix "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen"
-
-echo.
-echo  Building samples...
-call "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo_gen" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo_gen"
-cd /d "%~dp0"
-
-echo.
-echo ============================================================
-echo  PGO GENERATE build complete.
-echo  Installed to: C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen
-echo  Samples built to: C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo_gen
-echo.
-echo  Next steps:
-echo    1. Run representative workloads with the installed binaries
-echo       .pgc profile data will be generated alongside the .pgd at:
-echo       %PGO_DIR%
-echo    2. Run: build_msvc.bat pgo-use
-echo ============================================================
-goto :done
-
-REM ============================================================
-REM  Mode 5: MSVC + Architecture Opt + LTO + PGO Use
-REM ============================================================
-:mode_pgo_use
-echo.
-echo ============================================================
-echo  Building: MSVC + %ARCH% + LTO + PGO USE
-echo  Uses collected profile for optimization
-echo ============================================================
-echo.
-
-REM --- Validate profile directory exists ---
-if not exist "%PGO_DIR%" (
-    echo ERROR: PGO profiles directory not found:
-    echo   %PGO_DIR%
-    echo.
-    echo You must first:
-    echo   1. Run: build_msvc.bat pgo-generate
-    echo   2. Run representative workloads with the instrumented binaries
-    exit /b 1
-)
-
-echo Using profiles from: %PGO_DIR%
 
 rmdir /s /q build_release_2025.4_msvc_ptl_lto_pgo 2>nul
 
@@ -248,20 +213,92 @@ cmake -B build_release_2025.4_msvc_ptl_lto_pgo -G "Visual Studio 17 2022" -A x64
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
     -DENABLE_LTO=ON ^
-    -DENABLE_PGO=USE ^
-    -DPGO_PROFILES_DIR="%PGO_DIR%"
+    -DENABLE_PGO=GENERATE
 
-cmake --build build_release_2025.4_msvc_ptl_lto_pgo --config Release --verbose -j
+cmake --build build_release_2025.4_msvc_ptl_lto_pgo --config Release --verbose -j -- /p:StopOnFirstFailure=true
+if errorlevel 1 exit /b 1
+
+cmake --install build_release_2025.4_msvc_ptl_lto_pgo --config Release --prefix "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen"
+
+echo.
+echo  Building samples...
+call "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen\setupvars.bat"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo_gen"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Visual Studio 17 2022" -A x64
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
+
+echo.
+echo ============================================================
+echo  PGO GENERATE build complete.
+echo  Installed to: C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo_gen
+echo  Samples built to: C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo_gen
+echo.
+echo  .pgd files created next to each binary in the build tree.
+echo  The absolute .pgd path is baked into each instrumented binary.
+echo.
+echo  Next steps:
+echo    1. Run representative workloads with the INSTALLED binaries
+echo       (the .pgc profile data will be written back to the BUILD TREE,
+echo        next to each .pgd file, NOT next to the installed binary)
+echo.
+echo       Optional: set VCPROFILE_PATH=^<dir^> before running workloads
+echo       to redirect .pgc output to a custom directory.
+echo.
+echo    2. Run: build_msvc.bat pgo-use
+echo       (do NOT manually delete build_release_2025.4_msvc_ptl_lto_pgo)
+echo ============================================================
+goto :done
+
+REM ============================================================
+REM  Mode 5: MSVC + Architecture Opt + LTO + PGO Use
+REM
+REM  Re-uses the SAME build directory from pgo-generate so the
+REM  linker can find each target's .pgd + .pgc files.
+REM ============================================================
+:mode_pgo_use
+echo.
+echo ============================================================
+echo  Building: MSVC + %ARCH% + LTO + PGO USE
+echo  Reconfigures the GENERATE build dir with /USEPROFILE
+echo ============================================================
+echo.
+
+REM --- Validate the generate build directory exists ---
+if not exist "build_release_2025.4_msvc_ptl_lto_pgo" (
+    echo ERROR: PGO GENERATE build directory not found:
+    echo   build_release_2025.4_msvc_ptl_lto_pgo
+    echo.
+    echo You must first:
+    echo   1. Run: build_msvc.bat pgo-generate
+    echo   2. Run representative workloads with the instrumented binaries
+    exit /b 1
+)
+
+REM --- Reconfigure the SAME build dir with USE (do NOT rmdir) ---
+cmake -B build_release_2025.4_msvc_ptl_lto_pgo -G "Visual Studio 17 2022" -A x64 ^
+    -DENABLE_INTEL_GPU=OFF ^
+    -DENABLE_INTEL_NPU=OFF ^
+    -DENABLE_PYTHON=ON ^
+    -DENABLE_WHEEL=ON ^
+    -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_LTO=ON ^
+    -DENABLE_PGO=USE
+
+cmake --build build_release_2025.4_msvc_ptl_lto_pgo --config Release --verbose -j -- /p:StopOnFirstFailure=true
+if errorlevel 1 exit /b 1
 
 cmake --install build_release_2025.4_msvc_ptl_lto_pgo --config Release --prefix "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo"
 
 echo.
 echo  Building samples...
 call "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo\setupvars.bat"
-cd /d "C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo\samples\cpp"
-rmdir /s /q "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo" 2>nul
-call .\build_samples_msvc.bat -b "C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo"
-cd /d "%~dp0"
+set "SAMPLES_SRC=C:\Users\gta\Desktop\openvino\msvc\ov_2025.4_msvc_ptl_lto_pgo\samples\cpp"
+set "SAMPLES_BLD=C:\Users\gta\Desktop\openvino\msvc\build_samples_msvc_ptl_lto_pgo"
+rmdir /s /q "%SAMPLES_BLD%" 2>nul
+cmake -B "%SAMPLES_BLD%" -S "%SAMPLES_SRC%" -G "Visual Studio 17 2022" -A x64
+cmake --build "%SAMPLES_BLD%" --config Release --parallel
 
 echo.
 echo ============================================================

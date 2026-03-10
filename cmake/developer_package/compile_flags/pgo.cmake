@@ -80,40 +80,58 @@ if(NOT ENABLE_PGO STREQUAL "OFF")
     # =================================================================
     if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
-        # MSVC PGO requires /GL (Whole Program Optimization)
+        # MSVC PGO requires /GL (Whole Program Optimization) on ALL targets.
+        # Always add it globally, even when ENABLE_LTO is ON, because CMake's
+        # IPO mechanism only sets /GL per-target via INTERPROCEDURAL_OPTIMIZATION.
+        # Targets without that property (e.g. samples) would lack /GL but still
+        # receive /GENPROFILE from global linker flags, causing LNK1264.
+        # Adding /GL globally is harmless — duplicate /GL flags are ignored.
+        add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/GL>)
         if(NOT ENABLE_LTO)
-            add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/GL>)
             message(STATUS "  Auto-enabled /GL (required for MSVC PGO)")
         endif()
 
-        # Use a .pgd file in the profiles directory
-        set(_msvc_pgd_file "${PGO_PROFILES_DIR}/openvino.pgd")
+        # NOTE: We do NOT specify :PGD=<file> here. This lets MSVC create
+        # a per-target .pgd file (named after each binary) next to the
+        # output. Using a single shared .pgd causes corruption when MSBuild
+        # links multiple targets in parallel.
+        #
+        # The USE phase must use the SAME build directory as GENERATE so
+        # the linker can find each target's .pgd and .pgc files.
 
         if(ENABLE_PGO STREQUAL "GENERATE")
+            # /GENPROFILE requires /LTCG on the same link command.
+            # Add /LTCG globally to ensure all targets (including samples)
+            # satisfy this requirement, even if CMake IPO only sets it per-target.
             foreach(_type IN ITEMS SHARED MODULE EXE)
                 set(CMAKE_${_type}_LINKER_FLAGS
-                    "${CMAKE_${_type}_LINKER_FLAGS} /GENPROFILE:PGD=${_msvc_pgd_file}")
+                    "${CMAKE_${_type}_LINKER_FLAGS} /LTCG /GENPROFILE")
             endforeach()
             message(STATUS "  Compile flags: /GL")
-            message(STATUS "  Link flags:    /GENPROFILE:PGD=${_msvc_pgd_file}")
+            message(STATUS "  Link flags:    /LTCG /GENPROFILE")
+            message(STATUS "  Profile data:  Per-target .pgd files created next to each binary")
             message(STATUS "")
             message(STATUS "  ── PGO GENERATE workflow ──")
             message(STATUS "  1. Build the project with this configuration")
-            message(STATUS "  2. Run representative workloads with the instrumented binaries")
-            message(STATUS "  3. Profile data (.pgc files) will be written near the .pgd file")
-            message(STATUS "  4. Reconfigure with:")
-            message(STATUS "       -DENABLE_PGO=USE -DPGO_PROFILES_DIR=${PGO_PROFILES_DIR}")
+            message(STATUS "  2. Run representative workloads with the installed binaries")
+            message(STATUS "     The .pgd path is baked into each instrumented binary;")
+            message(STATUS "     .pgc files are written to the BUILD TREE (next to each .pgd),")
+            message(STATUS "     regardless of where the binary is executed from.")
+            message(STATUS "     Optional: set VCPROFILE_PATH=<dir> to redirect .pgc output.")
+            message(STATUS "  3. Reconfigure the SAME build directory with:")
+            message(STATUS "       -DENABLE_PGO=USE")
+            message(STATUS "     Do NOT delete the build directory.")
 
         elseif(ENABLE_PGO STREQUAL "USE")
+            # /USEPROFILE also requires /LTCG.
+            # MSVC looks for <target>.pgd + <target>!<n>.pgc next to each binary.
             foreach(_type IN ITEMS SHARED MODULE EXE)
                 set(CMAKE_${_type}_LINKER_FLAGS
-                    "${CMAKE_${_type}_LINKER_FLAGS} /USEPROFILE:PGD=${_msvc_pgd_file}")
+                    "${CMAKE_${_type}_LINKER_FLAGS} /LTCG /USEPROFILE")
             endforeach()
             message(STATUS "  Compile flags: /GL")
-            message(STATUS "  Link flags:    /USEPROFILE:PGD=${_msvc_pgd_file}")
+            message(STATUS "  Link flags:    /LTCG /USEPROFILE")
         endif()
-
-        unset(_msvc_pgd_file)
 
     # =================================================================
     # ICX (Intel LLVM)
@@ -266,8 +284,8 @@ endif()
 #             linker directly, use: lld-link /profile-sample-generate
 #
 #   USE:      recompile with -fprofile-sample-use=<file> to optimize using
-#             the collected hardware profile. Does NOT require lld; the
-#             default linker (link.exe) works fine for the USE phase.
+#             the collected hardware profile. On Windows, lld is also
+#             required so the linker can consume the profile during LTO.
 #
 #   Profile collection tools:
 #     Linux:   perf record -b -c 1000003 -e br_inst_retired.near_taken:uppp
@@ -367,18 +385,31 @@ if(NOT ENABLE_HWPGO STREQUAL "OFF")
         message(STATUS "  Profile file: ${HWPGO_PROFILE_FILE}")
 
         # -fprofile-sample-use tells the compiler to use the collected profile
-        # for optimization decisions. Unlike GENERATE, the USE phase does NOT
-        # require lld on Windows — the default linker (link.exe) works fine.
-        # The profile is consumed at compile time; passing it to the linker
-        # makes it available during link-time optimization (LTO) if enabled.
+        # for optimization decisions. The profile is consumed at compile time;
+        # passing it to the linker makes it available during link-time
+        # optimization (LTO) if enabled.
+        #
+        # On Windows, lld is required so the linker can process the profile
+        # during LTO. We add -fuse-ld=lld explicitly for consistency with
+        # the GENERATE phase and to ensure correct LTO behavior.
         ov_add_compiler_flags(-fprofile-sample-use=${HWPGO_PROFILE_FILE})
-        foreach(_type IN ITEMS SHARED MODULE EXE)
-            set(CMAKE_${_type}_LINKER_FLAGS
-                "${CMAKE_${_type}_LINKER_FLAGS} -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
-        endforeach()
 
-        message(STATUS "  Compile flags: -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
-        message(STATUS "  Link flags:    -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+        if(WIN32)
+            foreach(_type IN ITEMS SHARED MODULE EXE)
+                set(CMAKE_${_type}_LINKER_FLAGS
+                    "${CMAKE_${_type}_LINKER_FLAGS} -fprofile-sample-use=${HWPGO_PROFILE_FILE} -fuse-ld=lld")
+            endforeach()
+            message(STATUS "  Linker:        lld")
+            message(STATUS "  Compile flags: -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+            message(STATUS "  Link flags:    -fprofile-sample-use=${HWPGO_PROFILE_FILE} -fuse-ld=lld")
+        else()
+            foreach(_type IN ITEMS SHARED MODULE EXE)
+                set(CMAKE_${_type}_LINKER_FLAGS
+                    "${CMAKE_${_type}_LINKER_FLAGS} -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+            endforeach()
+            message(STATUS "  Compile flags: -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+            message(STATUS "  Link flags:    -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+        endif()
     endif()
 
     message(STATUS "")

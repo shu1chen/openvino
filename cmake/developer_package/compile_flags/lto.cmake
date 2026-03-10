@@ -37,6 +37,17 @@ if(_ov_ipo_result)
     set(OV_IPO_SUPPORTED ON CACHE INTERNAL
         "Whether CMake INTERPROCEDURAL_OPTIMIZATION is supported" FORCE)
     message(STATUS "LTO (Link Time Optimization) is enabled (CMake IPO supported)")
+
+    # ICX on Windows: CMake IPO adds -Qipo compile/link flags per-target,
+    # but the default MSVC linker (link.exe) cannot perform LLVM-based LTO.
+    # Force lld globally so all targets (including samples) link with lld-link
+    # which understands LLVM bitcode and can perform the actual LTO.
+    if(OV_COMPILER_IS_INTEL_LLVM AND WIN32)
+        foreach(_type IN ITEMS SHARED MODULE EXE)
+            set(CMAKE_${_type}_LINKER_FLAGS "${CMAKE_${_type}_LINKER_FLAGS} -fuse-ld=lld")
+        endforeach()
+        message(STATUS "LTO: ICX Windows — using lld linker (-fuse-ld=lld)")
+    endif()
 else()
     # --- Fallback: set compiler-specific flags globally ---
     message(STATUS "CMake IPO check failed (${_ov_ipo_output}), trying compiler-specific LTO flags")
@@ -55,12 +66,13 @@ else()
 
     elseif(OV_COMPILER_IS_INTEL_LLVM)
         if(WIN32)
-            # Intel IPO on Windows (works with MSVC linker)
+            # Intel IPO on Windows — use lld linker instead of link.exe
+            # so that LLVM-based LTO can actually take effect.
             ov_add_compiler_flags(-Qipo)
             foreach(_type IN ITEMS SHARED MODULE EXE)
-                set(CMAKE_${_type}_LINKER_FLAGS "${CMAKE_${_type}_LINKER_FLAGS} -Qipo")
+                set(CMAKE_${_type}_LINKER_FLAGS "${CMAKE_${_type}_LINKER_FLAGS} -Qipo -fuse-ld=lld")
             endforeach()
-            message(STATUS "LTO: Intel LLVM (ICX) Windows — -Qipo")
+            message(STATUS "LTO: Intel LLVM (ICX) Windows — -Qipo + lld linker")
         else()
             # LLVM LTO on Linux
             ov_add_compiler_flags(-flto)
