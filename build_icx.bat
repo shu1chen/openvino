@@ -19,10 +19,14 @@ REM    hwpgo-generate  :  ICX Release + /QxPANTHERLAKE + LTO + HWPGO gen
 REM    hwpgo-use       :  ICX Release + /QxPANTHERLAKE + LTO + HWPGO use
 REM
 REM  HWPGO workflow:
-REM    1. build_icx.bat hwpgo-generate  (build with frame pointers)
-REM    2. Run workloads under VTune / perf, export .afdo profile
-REM    3. Place profile at: C:\Users\gta\Desktop\openvino\icx\pgo_profiles\profile.afdo
-REM    4. build_icx.bat hwpgo-use       (rebuild with profile)
+REM    1. build_icx.bat hwpgo-generate  (build with DWARF debug info)
+REM    2. Collect profile using SEP (from Intel VTune):
+REM       sep -start -out app.tb7 -ec BR_INST_RETIRED.NEAR_TAKEN:PRECISE=YES:SA=1000003:pdir:lbr:USR=YES
+REM         -lbr no_filter:usr -perf-script ip,brstack -app .\your_workload.exe
+REM    3. Convert profile:
+REM       llvm-profgen --perfscript app.perf.data.script --binary your_workload.exe --output profile.prof
+REM    4. Place profile at: C:\Users\gta\Desktop\openvino\icx\pgo_profiles\profile.prof
+REM    5. build_icx.bat hwpgo-use       (rebuild with profile)
 REM ============================================================
 
 setlocal enabledelayedexpansion
@@ -33,7 +37,7 @@ if "%MODE%"=="" set MODE=base
 REM --- Common configuration ---
 set ARCH=PANTHERLAKE
 set PROFILE_DIR=C:\Users\gta\Desktop\openvino\icx\pgo_profiles
-set PROFILE_FILE=%PROFILE_DIR%\profile.afdo
+set PROFILE_FILE=%PROFILE_DIR%\profile.prof
 
 REM --- Setup oneAPI environment ---
 call "C:\Program Files (x86)\Intel\oneAPI\setvars.bat"
@@ -219,9 +223,13 @@ echo  Installed to: C:\Users\gta\Desktop\openvino\icx\ov_2025.4_icx_ptl_lto_hwpg
 echo  Samples built to: C:\Users\gta\Desktop\openvino\icx\build_samples_icx_ptl_lto_hwpgo_gen
 echo.
 echo  Next steps:
-echo    1. Run representative workloads under VTune or perf
-echo    2. Convert to .afdo format
-echo    3. Place at: %PROFILE_FILE%
+echo    1. Collect profile using SEP (from Intel VTune):
+echo       sep -start -out app.tb7 ^
+echo         -ec BR_INST_RETIRED.NEAR_TAKEN:PRECISE=YES:SA=1000003:pdir:lbr:USR=YES ^
+echo         -lbr no_filter:usr -perf-script ip,brstack -app .\your_workload.exe
+echo    2. Convert to LLVM profile (note: use --perfscript on Windows):
+echo       llvm-profgen --perfscript app.perf.data.script --binary your_workload.exe --output profile.prof
+echo    3. Place profile at: %PROFILE_FILE%
 echo    4. Run: build_icx.bat hwpgo-use
 echo ============================================================
 goto :done
@@ -244,8 +252,9 @@ if not exist "%PROFILE_FILE%" (
     echo.
     echo You must first:
     echo   1. Run: build_icx.bat hwpgo-generate
-    echo   2. Profile the built binaries with VTune or perf
-    echo   3. Convert to .afdo and place at the path above
+    echo   2. Profile the built binaries using SEP (from Intel VTune)
+    echo   3. Convert with: llvm-profgen --perfscript ^<file^> --binary ^<exe^> --output profile.prof
+    echo   4. Place profile.prof at the path above
     exit /b 1
 )
 
