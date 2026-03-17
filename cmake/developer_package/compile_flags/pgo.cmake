@@ -284,8 +284,8 @@ endif()
 #             linker directly, use: lld-link /profile-sample-generate
 #
 #   USE:      recompile with -fprofile-sample-use=<file> to optimize using
-#             the collected hardware profile. On Windows, lld is also
-#             required so the linker can consume the profile during LTO.
+#             the collected hardware profile. Does NOT require lld.
+#             -Qipo (Intel IPO) works with link.exe on Windows.
 #
 #   Profile collection tools:
 #     Linux:   perf record -b -c 1000003 -e br_inst_retired.near_taken:uppp
@@ -387,29 +387,20 @@ if(NOT ENABLE_HWPGO STREQUAL "OFF")
         # -fprofile-sample-use tells the compiler to use the collected profile
         # for optimization decisions. The profile is consumed at compile time;
         # passing it to the linker makes it available during link-time
-        # optimization (LTO) if enabled.
+        # optimization (LTO with -Qipo) if enabled.
         #
-        # On Windows, lld is required so the linker can process the profile
-        # during LTO. We add -fuse-ld=lld explicitly for consistency with
-        # the GENERATE phase and to ensure correct LTO behavior.
+        # Unlike GENERATE, the USE phase does NOT require lld on Windows.
+        # -Qipo (Intel IPO) works with link.exe, and the profile is primarily
+        # consumed at compile time. Do NOT add -fuse-ld=lld here — it causes
+        # undefined symbol errors with lld-link on MSVC-specific code patterns.
         ov_add_compiler_flags(-fprofile-sample-use=${HWPGO_PROFILE_FILE})
+        foreach(_type IN ITEMS SHARED MODULE EXE)
+            set(CMAKE_${_type}_LINKER_FLAGS
+                "${CMAKE_${_type}_LINKER_FLAGS} -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+        endforeach()
 
-        if(WIN32)
-            foreach(_type IN ITEMS SHARED MODULE EXE)
-                set(CMAKE_${_type}_LINKER_FLAGS
-                    "${CMAKE_${_type}_LINKER_FLAGS} -fprofile-sample-use=${HWPGO_PROFILE_FILE} -fuse-ld=lld")
-            endforeach()
-            message(STATUS "  Linker:        lld")
-            message(STATUS "  Compile flags: -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
-            message(STATUS "  Link flags:    -fprofile-sample-use=${HWPGO_PROFILE_FILE} -fuse-ld=lld")
-        else()
-            foreach(_type IN ITEMS SHARED MODULE EXE)
-                set(CMAKE_${_type}_LINKER_FLAGS
-                    "${CMAKE_${_type}_LINKER_FLAGS} -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
-            endforeach()
-            message(STATUS "  Compile flags: -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
-            message(STATUS "  Link flags:    -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
-        endif()
+        message(STATUS "  Compile flags: -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
+        message(STATUS "  Link flags:    -fprofile-sample-use=${HWPGO_PROFILE_FILE}")
     endif()
 
     message(STATUS "")
