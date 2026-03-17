@@ -254,18 +254,17 @@ echo ============================================================
 echo.
 
 REM --- Validate profile file exists ---
-if not exist "%PROFILE_FILE%" (
-    echo ERROR: HWPGO profile file not found:
-    echo   %PROFILE_FILE%
-    echo.
-    echo You must first:
-    echo   1. Run: build_icx.bat hwpgo-generate
-    echo   2. Profile the built binaries using SEP (from Intel VTune)
-    echo   3. Convert with: llvm-profgen --perfscript ^<file^> --binary ^<exe^> --output profile.prof
-    echo   4. Place profile.prof at the path above
-    exit /b 1
-)
-
+if exist "%PROFILE_FILE%" goto :hwpgo_profile_found
+echo ERROR: HWPGO profile file not found:
+echo   %PROFILE_FILE%
+echo.
+echo You must first:
+echo   1. Run: build_icx.bat hwpgo-generate
+echo   2. Profile the built binaries using SEP (from Intel VTune)
+echo   3. Convert with: llvm-profgen --perfscript ^<file^> --binary ^<exe^> --output profile.prof
+echo   4. Place profile.prof at the path above
+exit /b 1
+:hwpgo_profile_found
 echo Using profile: %PROFILE_FILE%
 
 rmdir /s /q build_release_2025.4_icx_ptl_lto_hwpgo 2>nul

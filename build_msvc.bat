@@ -266,15 +266,15 @@ echo ============================================================
 echo.
 
 REM --- Validate the generate build directory exists ---
-if not exist "build_release_2025.4_msvc_ptl_lto_pgo" (
-    echo ERROR: PGO GENERATE build directory not found:
-    echo   build_release_2025.4_msvc_ptl_lto_pgo
-    echo.
-    echo You must first:
-    echo   1. Run: build_msvc.bat pgo-generate
-    echo   2. Run representative workloads with the instrumented binaries
-    exit /b 1
-)
+if exist "build_release_2025.4_msvc_ptl_lto_pgo" goto :pgo_builddir_found
+echo ERROR: PGO GENERATE build directory not found:
+echo   build_release_2025.4_msvc_ptl_lto_pgo
+echo.
+echo You must first:
+echo   1. Run: build_msvc.bat pgo-generate
+echo   2. Run representative workloads with the instrumented binaries
+exit /b 1
+:pgo_builddir_found
 
 REM --- Reconfigure the SAME build dir with USE (do NOT rmdir) ---
 cmake -B build_release_2025.4_msvc_ptl_lto_pgo -G "Visual Studio 17 2022" -A x64 ^
