@@ -57,6 +57,13 @@ PY_TYPE check_container_element_type(const T& container) {
     return detected_type;
 };
 
+// Explicit template instantiations — required so the symbol is always emitted.
+// Without these, profile-guided optimization (-fprofile-sample-use) can cause
+// the compiler to eliminate implicit instantiations, leading to undefined
+// symbol errors at link time (especially with lld-link).
+template PY_TYPE check_container_element_type<py::list>(const py::list& container);
+template PY_TYPE check_container_element_type<py::set>(const py::set& container);
+
 // For complex structure if an element isn't map, then just cast it to OVAny
 py::object from_ov_any_no_leaves(const ov::Any& any) {
     if (any.is<std::shared_ptr<ov::Meta>>() || any.is<ov::AnyMap>()) {

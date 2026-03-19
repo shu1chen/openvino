@@ -24,11 +24,10 @@ REM    2. Run representative workloads with the INSTALLED binaries
 REM    3. build_msvc.bat pgo-use        (reconfigure same build dir with /USEPROFILE)
 REM
 REM  How MSVC PGO profile data works:
-REM    - OpenVINO cmake sets CMAKE_RUNTIME_OUTPUT_DIRECTORY to
-REM      <source_dir>\bin\intel64\<config>, so ALL binaries (DLLs, EXEs)
-REM      go to openvino\bin\intel64\Release\ (not inside the build tree).
+REM    - Each build mode sets OUTPUT_ROOT to its own build directory,
+REM      so binaries go to <build_dir>\bin\intel64\Release\
 REM    - The GENERATE link creates a .pgd file next to each binary
-REM      (e.g. openvino\bin\intel64\Release\openvino.pgd)
+REM      (e.g. <build_dir>\bin\intel64\Release\openvino.pgd)
 REM    - The absolute .pgd path is BAKED INTO the instrumented binary
 REM    - At runtime, the PGO runtime writes .pgc files next to the .pgd,
 REM      regardless of where the binary is executed from
@@ -75,6 +74,7 @@ echo.
 rmdir /s /q build_release_2025.4_msvc 2>nul
 
 cmake -B build_release_2025.4_msvc -G "Visual Studio 17 2022" -A x64 ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_msvc ^
     -DENABLE_INTEL_GPU=OFF ^
     -DENABLE_INTEL_NPU=OFF ^
     -DENABLE_PYTHON=ON ^
@@ -115,11 +115,13 @@ echo.
 rmdir /s /q build_release_2025.4_msvc_ptl 2>nul
 
 cmake -B build_release_2025.4_msvc_ptl -G "Visual Studio 17 2022" -A x64 ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_msvc_ptl ^
     -DENABLE_INTEL_GPU=OFF ^
     -DENABLE_INTEL_NPU=OFF ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
-    -DOV_TARGET_ARCH=%ARCH%
+    -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF
 
 cmake --build build_release_2025.4_msvc_ptl --config Release --verbose -j -- /p:StopOnFirstFailure=true
 if errorlevel 1 exit /b 1
@@ -156,11 +158,13 @@ echo.
 rmdir /s /q build_release_2025.4_msvc_ptl_lto 2>nul
 
 cmake -B build_release_2025.4_msvc_ptl_lto -G "Visual Studio 17 2022" -A x64 ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_msvc_ptl_lto ^
     -DENABLE_INTEL_GPU=OFF ^
     -DENABLE_INTEL_NPU=OFF ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF ^
     -DENABLE_LTO=ON
 
 cmake --build build_release_2025.4_msvc_ptl_lto --config Release --verbose -j -- /p:StopOnFirstFailure=true
@@ -207,11 +211,13 @@ echo.
 rmdir /s /q build_release_2025.4_msvc_ptl_lto_pgo 2>nul
 
 cmake -B build_release_2025.4_msvc_ptl_lto_pgo -G "Visual Studio 17 2022" -A x64 ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_msvc_ptl_lto_pgo ^
     -DENABLE_INTEL_GPU=OFF ^
     -DENABLE_INTEL_NPU=OFF ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF ^
     -DENABLE_LTO=ON ^
     -DENABLE_PGO=GENERATE
 
@@ -278,11 +284,13 @@ exit /b 1
 
 REM --- Reconfigure the SAME build dir with USE (do NOT rmdir) ---
 cmake -B build_release_2025.4_msvc_ptl_lto_pgo -G "Visual Studio 17 2022" -A x64 ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_msvc_ptl_lto_pgo ^
     -DENABLE_INTEL_GPU=OFF ^
     -DENABLE_INTEL_NPU=OFF ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF ^
     -DENABLE_LTO=ON ^
     -DENABLE_PGO=USE
 

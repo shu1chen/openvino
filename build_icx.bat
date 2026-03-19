@@ -66,6 +66,7 @@ echo.
 rmdir /s /q build_release_2025.4_icx 2>nul
 
 cmake -B build_release_2025.4_icx -G "Ninja" ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_icx ^
     -DCMAKE_C_COMPILER=icx ^
     -DCMAKE_CXX_COMPILER=icx ^
     -DENABLE_INTEL_GPU=OFF ^
@@ -109,6 +110,7 @@ echo.
 rmdir /s /q build_release_2025.4_icx_ptl 2>nul
 
 cmake -B build_release_2025.4_icx_ptl -G "Ninja" ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_icx_ptl ^
     -DCMAKE_C_COMPILER=icx ^
     -DCMAKE_CXX_COMPILER=icx ^
     -DENABLE_INTEL_GPU=OFF ^
@@ -116,7 +118,8 @@ cmake -B build_release_2025.4_icx_ptl -G "Ninja" ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
-    -DOV_TARGET_ARCH=%ARCH%
+    -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF
 
 cmake --build build_release_2025.4_icx_ptl --config Release --verbose -j
 if errorlevel 1 exit /b 1
@@ -153,6 +156,7 @@ echo.
 rmdir /s /q build_release_2025.4_icx_ptl_lto 2>nul
 
 cmake -B build_release_2025.4_icx_ptl_lto -G "Ninja" ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_icx_ptl_lto ^
     -DCMAKE_C_COMPILER=icx ^
     -DCMAKE_CXX_COMPILER=icx ^
     -DENABLE_INTEL_GPU=OFF ^
@@ -161,6 +165,7 @@ cmake -B build_release_2025.4_icx_ptl_lto -G "Ninja" ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF ^
     -DENABLE_LTO=ON
 
 cmake --build build_release_2025.4_icx_ptl_lto --config Release --verbose -j
@@ -199,6 +204,7 @@ echo.
 rmdir /s /q build_release_2025.4_icx_ptl_lto_hwpgo_gen 2>nul
 
 cmake -B build_release_2025.4_icx_ptl_lto_hwpgo_gen -G "Ninja" ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_icx_ptl_lto_hwpgo_gen ^
     -DCMAKE_C_COMPILER=icx ^
     -DCMAKE_CXX_COMPILER=icx ^
     -DENABLE_INTEL_GPU=OFF ^
@@ -207,6 +213,7 @@ cmake -B build_release_2025.4_icx_ptl_lto_hwpgo_gen -G "Ninja" ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF ^
     -DENABLE_LTO=ON ^
     -DENABLE_HWPGO=GENERATE
 
@@ -270,6 +277,7 @@ echo Using profile: %PROFILE_FILE%
 rmdir /s /q build_release_2025.4_icx_ptl_lto_hwpgo 2>nul
 
 cmake -B build_release_2025.4_icx_ptl_lto_hwpgo -G "Ninja" ^
+    -DOUTPUT_ROOT=%CD:\=/%/build_release_2025.4_icx_ptl_lto_hwpgo ^
     -DCMAKE_C_COMPILER=icx ^
     -DCMAKE_CXX_COMPILER=icx ^
     -DENABLE_INTEL_GPU=OFF ^
@@ -278,6 +286,7 @@ cmake -B build_release_2025.4_icx_ptl_lto_hwpgo -G "Ninja" ^
     -DENABLE_PYTHON=ON ^
     -DENABLE_WHEEL=ON ^
     -DOV_TARGET_ARCH=%ARCH% ^
+    -DENABLE_AVX512F=OFF ^
     -DENABLE_LTO=ON ^
     -DENABLE_HWPGO=USE ^
     -DHWPGO_PROFILE_FILE="%PROFILE_FILE%"
